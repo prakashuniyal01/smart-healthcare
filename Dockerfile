@@ -1,22 +1,23 @@
-# Use official Python 3.12 image
+# Step 1: Use Python 3.12 slim base image
 FROM python:3.12-slim
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
+# Step 2: Set environment variables to ensure Python output is unbuffered
 ENV PYTHONUNBUFFERED 1
 
-# Set the working directory in the container
+# Step 3: Set working directory in the container
 WORKDIR /app
 
-# Copy the requirements file and install dependencies
+# Step 4: Copy the requirements.txt file into the container
 COPY requirements.txt /app/
-RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Copy the rest of the project files into the container
+# Step 5: Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Step 6: Copy the rest of the project files into the container
 COPY . /app/
 
-# Expose the default Django port
+# Step 7: Expose port for the Django app to be accessed
 EXPOSE 8000
 
-# Command to run the Django development server
+# Step 8: Command to run the Django app
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
