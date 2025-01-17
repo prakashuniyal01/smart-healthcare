@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  # Web service running the Django application
+  web:
+    build: .
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - DEBUG=True
+      - DATABASE_URL=postgres://user:password@db:5432/healthcare_db
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+      - DJANGO_SETTINGS_MODULE=healthcare_appointment_system.settings
+
+  # PostgreSQL service
+  db:
+    image: postgres:13
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=healthcare_db
+
+  # Optional: You can add other services like Redis or Celery if needed.
+
+volumes:
+  postgres_data:
