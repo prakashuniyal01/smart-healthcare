@@ -1,159 +1,181 @@
-# Smart Healthcare Appointment System
+Entities and Relationships
+The system requires the following main entities:
 
-## Overview
-A healthcare appointment booking system where patients can find and book appointments with doctors based on availability and health requirements. The system uses AI/ML to predict optimal time slots for booking and provides analytics dashboards for administrators.
+User (Base entity for all types of users: patients, doctors, admins)
+Doctor (Extends User for additional doctor-specific details)
+Patient (Extends User for additional patient-specific details)
+Appointment (Links doctors and patients)
+Feedback (Submitted by patients for doctors)
+Specialization (Defines doctor specialties)
+Availability (Tracks doctor schedules)
+Audit Logs (Logs changes for security and traceability)
+Database Schema
+1. Users Table
+Stores shared attributes of all users.
+Supports role-based access (Patient, Doctor, Admin).
+Field	Type	Constraints
+id	UUID (Primary Key)	Unique, Primary Key
+username	VARCHAR(150)	Unique, Indexed
+email	VARCHAR(255)	Unique, Indexed
+password	VARCHAR(255)	Encrypted
+role	ENUM('patient', 'doctor', 'admin')	Role-Based Access
+created_at	TIMESTAMP	Default: CURRENT_TIMESTAMP
+updated_at	TIMESTAMP	Default: CURRENT_TIMESTAMP, On Update
+2. Doctors Table
+Extends the users table with doctor-specific details.
+Field	Type	Constraints
+user_id	UUID (FK: users.id)	Unique, References users
+specialization_id	INT (FK: specialization.id)	Links to Specialization
+license_number	VARCHAR(100)	Unique, Verified
+years_of_experience	INT	Not Null
+rating	DECIMAL(3,2)	Default: 0
+3. Patients Table
+Extends the users table with patient-specific details.
+Field	Type	Constraints
+user_id	UUID (FK: users.id)	Unique, References users
+date_of_birth	DATE	Not Null
+gender	ENUM('male', 'female', 'other')	Optional
+contact_number	VARCHAR(15)	Indexed
+4. Specializations Table
+Stores predefined doctor specializations.
+Field	Type	Constraints
+id	INT (Primary Key)	Unique, Auto-Increment
+name	VARCHAR(100)	Unique, Not Null
+5. Appointments Table
+Tracks doctor-patient appointments.
+Field	Type	Constraints
+id	UUID (Primary Key)	Unique, Primary Key
+patient_id	UUID (FK: patients.user_id)	Not Null
+doctor_id	UUID (FK: doctors.user_id)	Not Null
+scheduled_at	TIMESTAMP	Not Null
+status	ENUM('pending', 'confirmed', 'completed', 'cancelled')	Default: 'pending'
+created_at	TIMESTAMP	Default: CURRENT_TIMESTAMP
+6. Feedback Table
+Stores feedback and ratings provided by patients for doctors.
+Field	Type	Constraints
+id	UUID (Primary Key)	Unique, Primary Key
+patient_id	UUID (FK: patients.user_id)	Not Null
+doctor_id	UUID (FK: doctors.user_id)	Not Null
+rating	INT (1-5)	Not Null
+comments	TEXT	Optional
+created_at	TIMESTAMP	Default: CURRENT_TIMESTAMP
+7. Availability Table
+Tracks the availability of doctors.
+Field	Type	Constraints
+id	UUID (Primary Key)	Unique, Primary Key
+doctor_id	UUID (FK: doctors.user_id)	Not Null
+day_of_week	ENUM('Monday', 'Tuesday', ..., 'Sunday')	Not Null
+start_time	TIME	Not Null
+end_time	TIME	Not Null
+8. Audit Logs Table
+Logs sensitive actions for traceability.
+Field	Type	Constraints
+id	UUID (Primary Key)	Unique, Primary Key
+action_by	UUID (FK: users.id)	Not Null
+action_type	VARCHAR(255)	e.g., 'CREATE', 'UPDATE', 'DELETE'
+action_detail	TEXT	Detailed Description
+created_at	TIMESTAMP	Default: CURRENT_TIMESTAMP
+Key Points
+Security:
 
----
+Use UUID for primary keys to avoid predictable IDs.
+Encrypt sensitive data like passwords (e.g., use bcrypt or Django’s make_password).
+Implement database-level constraints for data integrity.
+DRY Principle:
 
-## Key Tables and Relationships
+Separate shared attributes into a single users table.
+Use foreign keys to avoid duplication of data.
+Scalability:
 
-### 1. Users Table (Abstracting Patients, Doctors, and Admins)
-This table stores basic user information and leverages Django's `AbstractUser` for role-based management.
+Index frequently queried fields (e.g., username, email, contact_number).
+Use partitioning or sharding if the data volume grows significantly.
+Analytics Support:
 
-```sql
-User
------
-id (Primary Key)
-username (Unique)
-email (Unique)
-password
-first_name
-last_name
-phone
-role (Choices: PATIENT, DOCTOR, ADMIN)
-date_joined
-last_login
-is_active
-is_staff (For admin)
-```
+Use created_at fields for tracking trends.
+Design the schema to support queries like "average rating per doctor" or "appointment trends per day."
+Let me know if you want to refine or implement any specific part! 🚀
 
-### 2. Doctor Table
-Stores additional information specific to doctors. This table has a one-to-one relationship with the `User` table.
 
-```plaintext
-Doctor
------
-id (Primary Key)
-user_id (Foreign Key to User)
-specialization (e.g., Cardiologist, Dentist)
-experience_years
-bio
-clinic_address
-consultation_fee
-available_days (e.g., Mon, Tue, Wed - ArrayField)
-available_slots (e.g., ["10:00", "11:00"] - JSONField)
-profile_image
-```
 
-### 3. Patient Table
-Stores additional information for patients. This table has a one-to-one relationship with the `User` table.
 
-```plaintext
-Patient
------
-id (Primary Key)
-user_id (Foreign Key to User)
-date_of_birth
-gender (Choices: Male, Female, Other)
-address
-medical_history (TextField or JSONField for conditions like diabetes, allergies, etc.)
-profile_image
-```
 
-### 4. Appointment Table
-Tracks all appointments. This table has many-to-one relationships with both `Doctor` and `Patient`.
 
-```plaintext
-Appointment
------
-id (Primary Key)
-doctor_id (Foreign Key to Doctor)
-patient_id (Foreign Key to Patient)
-appointment_date (Date)
-appointment_time (Time)
-status (Choices: PENDING, CONFIRMED, CANCELED, COMPLETED)
-symptoms (TextField)
-created_at (Timestamp)
-updated_at (Timestamp)
-```
 
-### 5. Feedback Table
-Stores feedback for doctors from patients. This table has many-to-one relationships with both `Doctor` and `Patient`.
+-- 1. Users Table
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username VARCHAR(150) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('patient', 'doctor', 'admin') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 
-```plaintext
-Feedback
------
-id (Primary Key)
-doctor_id (Foreign Key to Doctor)
-patient_id (Foreign Key to Patient)
-rating (IntegerField: 1-5)
-comment (TextField)
-created_at (Timestamp)
-```
+-- 2. Doctors Table
+CREATE TABLE doctors (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    specialization_id INT NOT NULL,
+    license_number VARCHAR(100) UNIQUE NOT NULL,
+    years_of_experience INT NOT NULL,
+    rating DECIMAL(3, 2) DEFAULT 0,
+    FOREIGN KEY (specialization_id) REFERENCES specializations(id)
+);
 
-### 6. Analytics Table
-Stores aggregated data for analytics purposes.
+-- 3. Patients Table
+CREATE TABLE patients (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    date_of_birth DATE NOT NULL,
+    gender ENUM('male', 'female', 'other'),
+    contact_number VARCHAR(15) UNIQUE
+);
 
-```plaintext
-Analytics
------
-id (Primary Key)
-doctor_id (Foreign Key to Doctor)
-total_appointments
-completed_appointments
-canceled_appointments
-average_rating
-last_updated (Timestamp)
-```
+-- 4. Specializations Table
+CREATE TABLE specializations (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL
+);
 
----
+-- 5. Appointments Table
+CREATE TABLE appointments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id UUID NOT NULL REFERENCES patients(user_id) ON DELETE CASCADE,
+    doctor_id UUID NOT NULL REFERENCES doctors(user_id) ON DELETE CASCADE,
+    scheduled_at TIMESTAMP NOT NULL,
+    status ENUM('pending', 'confirmed', 'completed', 'cancelled') DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-## ER Diagram Relationships
+-- 6. Feedback Table
+CREATE TABLE feedback (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id UUID NOT NULL REFERENCES patients(user_id) ON DELETE CASCADE,
+    doctor_id UUID NOT NULL REFERENCES doctors(user_id) ON DELETE CASCADE,
+    rating INT CHECK (rating BETWEEN 1 AND 5) NOT NULL,
+    comments TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-- **User ↔ Doctor (1-to-1):** Each doctor is a user with additional attributes.
-- **User ↔ Patient (1-to-1):** Each patient is a user with additional attributes.
-- **Doctor ↔ Appointment (1-to-Many):** A doctor can have many appointments.
-- **Patient ↔ Appointment (1-to-Many):** A patient can book multiple appointments.
-- **Doctor ↔ Feedback (1-to-Many):** A doctor can receive feedback from multiple patients.
-- **Patient ↔ Feedback (1-to-Many):** A patient can give feedback to multiple doctors.
+-- 7. Availability Table
+CREATE TABLE availability (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    doctor_id UUID NOT NULL REFERENCES doctors(user_id) ON DELETE CASCADE,
+    day_of_week ENUM('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday') NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL
+);
 
----
+-- 8. Audit Logs Table
+CREATE TABLE audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    action_by UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+    action_type VARCHAR(255) NOT NULL,
+    action_detail TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-## Scalability and Best Practices
-
-1. **Abstract Models:** Use Django’s abstract base models for shared fields (e.g., timestamps for `created_at` and `updated_at`).
-2. **Indexes:** Add database indexes on frequently queried fields (e.g., `appointment_date`, `status`).
-3. **JSONFields:** Use `JSONField` for flexible fields like `medical_history` or `available_slots`.
-4. **Audit Logs:** Optionally, add a `Log` table to track changes for debugging or reporting.
-5. **Soft Deletes:** Use a `deleted` boolean flag for tables to implement soft delete instead of permanently deleting rows.
-
----
-
-## Getting Started
-
-1. **Install Dependencies:**
-   ```bash
-   pip install django djangorestframework
-   ```
-
-2. **Migrate Database:**
-   ```bash
-   python manage.py makemigrations
-   python manage.py migrate
-   ```
-
-3. **Run the Development Server:**
-   ```bash
-   python manage.py runserver
-   ```
-
-4. **Access the Admin Panel:**
-   Create a superuser and log in to the admin interface to manage users, doctors, and appointments.
-
----
-
-## Additional Notes
-
-- Use Django’s `admin` panel for easy management of data.
-- Add unit tests to ensure code quality and functionality.
-- Deploy the application to a cloud platform like AWS, Heroku, or Azure for production.
+-- Indexes for optimization
+CREATE INDEX idx_users_email ON users (email);
+CREATE INDEX idx_users_username ON users (username);
+CREATE INDEX idx_patients_contact_number ON patients (contact_number);
+CREATE INDEX idx_appointments_scheduled_at ON appointments (scheduled_at);
