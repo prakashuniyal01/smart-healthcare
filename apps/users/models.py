@@ -42,8 +42,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Core fields
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     username = models.CharField(max_length=150, unique=True)
+    full_name = models.CharField(max_length=255, default="", blank=True)
     email = models.EmailField(max_length=255, unique=True)
-    
+    phone_number = models.CharField(max_length=15, default="", blank=True)
     profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
     email_verified = models.BooleanField(default=False)
     role = models.CharField(

@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
 
 # Load environment variables
 load_dotenv()
@@ -70,7 +71,28 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+}
+
 ROOT_URLCONF = 'config.urls'
+
+# JWT Settings
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # Access token expires in 30 minutes
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # Refresh token expires in 7 days
+    'ROTATE_REFRESH_TOKENS': False,                   # Prevent rotation of refresh tokens
+    'BLACKLIST_AFTER_ROTATION': False,
+    'ALGORITHM': 'HS256',                             # Use HS256 algorithm for JWT signing
+    'SIGNING_KEY': '3e9e9214caf823685b460962128dc59f07a3f759b2b5187abf2c5f0fe6d4671c',            # Secret key for JWT signing
+    'USER_ID_FIELD': 'id',                            # User ID field
+    'USER_ID_CLAIM': 'user_id',                      # Claim for the user ID
+}
 
 TEMPLATES = [
     {
@@ -141,6 +163,8 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
+
+AUTH_USER_MODEL = 'users.User'
 
 
 # Static files (CSS, JavaScript, Images)

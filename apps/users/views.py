@@ -1,9 +1,13 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import UserRegistrationSerializer
+from .serializers import UserRegistrationSerializer, UserLoginSerializer
 from django.utils.timezone import now
 from .models import User
+from rest_framework.authtoken.models import Token
+from rest_framework.permissions import AllowAny
+
+# register 
 class UserRegistrationView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = UserRegistrationSerializer(data=request.data)
@@ -16,6 +20,7 @@ class UserRegistrationView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+# varify 
 class VerifyOTPView(APIView):
     def post(self, request, *args, **kwargs):
         email = request.data.get('email')
@@ -35,3 +40,41 @@ class VerifyOTPView(APIView):
             return Response({"error": "Invalid or expired OTP."}, status=status.HTTP_400_BAD_REQUEST)
         except User.DoesNotExist:
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+
+# login 
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+from rest_framework import status
+from .serializers import UserLoginSerializer
+
+class UserLoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = UserLoginSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            tokens = serializer.get_tokens_for_user(user)
+
+            user_data = {
+                'id': user.id,
+                'username': user.username,
+                'full_name': user.full_name,
+                'email': user.email,
+                'phone_number': user.phone_number,
+                'role': user.role,
+                'profile_photo': user.profile_photo.url if user.profile_photo else None,
+                'is_active': user.is_active,
+                'is_staff': user.is_staff,
+                'created_at': user.created_at,
+                'updated_at': user.updated_at,
+            }
+
+            return Response({
+                'user': user_data,
+                'tokens': tokens
+            }, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
