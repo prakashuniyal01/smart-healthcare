@@ -43,7 +43,12 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "drf_yasg",
+    'rest_framework_simplejwt.token_blacklist',
+    'rest_framework.authtoken',
     "apps.users",
+    'apps.doctors',
+    'apps.patients',
+    # 'apps.feedback'
 ]
 
 MIDDLEWARE = [
@@ -79,23 +84,26 @@ WSGI_APPLICATION = 'core.wsgi.application'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PARSER_CLASSES': [
+        # 'rest_framework.permissions.IsAuthenticated',
         'rest_framework.parsers.JSONParser',
         'rest_framework.parsers.MultiPartParser',  # For handling file uploads
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
 }
-AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
-]
+
+AUTH_USER_MODEL = 'users.User'
+
+
 
 # Django REST Framework - Simple JWT configuration
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30                                                                                       ),  # Access token lifetime (15 minutes)
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # Refresh token lifetime (1 day)
-    'ROTATE_REFRESH_TOKENS': False,                   # Don't rotate refresh tokens
+    'ROTATE_REFRESH_TOKENS': True,                    # Rotate refresh tokens on login
     'BLACKLIST_AFTER_ROTATION': True,                 # Blacklist refresh tokens after use
 }
 # Database
@@ -158,10 +166,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 
-# backend/core/settings.py
-
 # SMTP Email Configuration
-# SMTP Email Backend setup
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.getenv('EMAIL_HOST')
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
