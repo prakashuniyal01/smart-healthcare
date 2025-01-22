@@ -180,5 +180,3 @@ smart_healthcare/
 - Interactive dashboards for administrators.
 
 ---
-
-For further queries, feel free to ask!

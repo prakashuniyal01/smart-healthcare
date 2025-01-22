@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Doctor, Specialization, WeeklySchedule, DoctorLeave
+from .models import Doctor, Specialization  , WeeklySchedule, DoctorLeave
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -17,7 +17,7 @@ class DoctorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Doctor
         fields = [
-            'id', 'user_id', 'specialization', 'degree', 'license_number',
+            'user_id', 'specialization', 'degree', 'license_number',
             'years_of_experience', 'consultation_fee', 'profile_description',
             'max_patients_per_day', 'is_active'
         ]
@@ -42,7 +42,7 @@ class DoctorSerializerGet(serializers.ModelSerializer):
     class Meta:
         model = Doctor
         fields = [
-            'id', 'user', 'specialization', 'degree', 'license_number',
+            'user', 'specialization', 'degree', 'license_number',
             'years_of_experience', 'consultation_fee', 'profile_description',
             'max_patients_per_day', 'is_active'
         ]
@@ -91,34 +91,19 @@ class WeeklyScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = WeeklySchedule
         fields = ['id', 'doctor', 'day_of_week', 'start_time', 'end_time', 'is_active']
+        read_only_fields = ['id', 'doctor']
 
-    def create(self, validated_data):
-        # If the doctor selects Sunday (day_of_week = 0), it will automatically add leave
-        day_of_week = validated_data.get('day_of_week')
-        
-        if day_of_week == 0:
-            # Automatically create leave for Sundays
-            doctor_leave = DoctorLeave.objects.create(
-                doctor=validated_data['doctor'],
-                leave_date=validated_data.get('start_time').date(),
-                reason="Weekly Leave (Sunday)"
-            )
-        return super().create(validated_data)
+    def validate(self, data):
+        # Ensure start_time is before end_time
+        if data['start_time'] >= data['end_time']:
+            raise serializers.ValidationError("Start time must be before end time.")
+        return data
 
 
 class DoctorLeaveSerializer(serializers.ModelSerializer):
     class Meta:
         model = DoctorLeave
         fields = ['id', 'doctor', 'leave_date', 'reason']
-
-    def create(self, validated_data):
-        leave_date = validated_data.get('leave_date')
-        
-        # Automatically mark Sundays as leave
-        if leave_date.weekday() == 6:  # Sunday
-            validated_data['reason'] = "Weekly Leave (Sunday)"
-        
-        return super().create(validated_data)       
-        
+        read_only_fields = ['id', 'doctor']      
         
         

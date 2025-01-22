@@ -1,14 +1,15 @@
-# patients/models.py
 from django.db import models
 from django.contrib.auth import get_user_model
-import uuid
-
 
 User = get_user_model()
 
 class Patient(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='patients_profile')
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        primary_key=True,  # Use the User's primary key as the Patient's primary key
+        related_name='patients_profile'
+    )
     date_of_birth = models.DateField()
     gender = models.CharField(max_length=10, choices=[('male', 'Male'), ('female', 'Female'), ('other', 'Other')])
     contact_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
