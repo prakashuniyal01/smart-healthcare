@@ -10,6 +10,7 @@ class SpecializationSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description']
 
 
+
 class DoctorSerializer(serializers.ModelSerializer):
     user_id = serializers.UUIDField(source='user.id', read_only=True)
     specialization = serializers.CharField()  # Accept specialization name as a string
@@ -106,4 +107,20 @@ class DoctorLeaveSerializer(serializers.ModelSerializer):
         fields = ['id', 'doctor', 'leave_date', 'reason']
         read_only_fields = ['id', 'doctor']      
         
-        
+
+class DoctorSerializerAll(serializers.ModelSerializer):
+    user_id = serializers.UUIDField(source='user.id', read_only=True)
+    specialization = SpecializationSerializer()
+    weekly_schedule = WeeklyScheduleSerializer(many=True)
+    leaves = DoctorLeaveSerializer(many=True)
+
+    class Meta:
+        model = Doctor
+        fields = ['id', 'user_id', 'specialization', 'degree', 'license_number',
+                  'years_of_experience', 'consultation_fee', 'profile_description',
+                  'max_patients_per_day', 'is_active', 'weekly_schedule', 'leaves']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # You can add any additional custom logic here if needed
+        return representation

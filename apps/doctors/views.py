@@ -3,7 +3,7 @@
 from rest_framework import status, permissions, viewsets,generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .serializers import DoctorSerializer,DoctorSerializerGet, DoctorUpdateSerializer, SpecializationSerializer , WeeklyScheduleSerializer, DoctorLeaveSerializer
+from .serializers import DoctorSerializer,DoctorSerializerGet, DoctorUpdateSerializer, SpecializationSerializer , WeeklyScheduleSerializer, DoctorLeaveSerializer, DoctorSerializerAll
 from .models import Doctor ,Specialization ,WeeklySchedule, DoctorLeave
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -121,6 +121,13 @@ class DoctorLeaveView(generics.ListCreateAPIView):
         doctor = Doctor.objects.get(user=self.request.user)
         serializer.save(doctor=doctor)  
         
-        
-        
+
+class DoctorListView(APIView):
+    """
+    Retrieve a list of all doctors with full details.
+    """
+    def get(self, request, *args, **kwargs):
+        doctors = Doctor.objects.all()
+        serializer = DoctorSerializer(doctors, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)   
         
