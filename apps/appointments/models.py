@@ -8,7 +8,6 @@ User = get_user_model()
 
 class Appointment(models.Model):
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
         ('confirmed', 'Confirmed'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
@@ -19,7 +18,7 @@ class Appointment(models.Model):
     date = models.DateField()
     start_time = models.TimeField()
     end_time = models.TimeField()
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='confirmed')
 
     class Meta:
         unique_together = ('doctor', 'date', 'start_time')  # Ensure no overlapping appointments
