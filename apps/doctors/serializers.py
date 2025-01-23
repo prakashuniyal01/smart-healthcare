@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Doctor, Specialization  , WeeklySchedule, DoctorLeave
+from datetime import datetime, timedelta, date
 from django.contrib.auth import get_user_model
-
 User = get_user_model()
 
 class SpecializationSerializer(serializers.ModelSerializer):
@@ -91,16 +91,34 @@ class DoctorUpdateSerializer(serializers.ModelSerializer):
 class WeeklyScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = WeeklySchedule
-        fields = ['id', 'doctor', 'day_of_week', 'start_time', 'end_time', 'is_active']
-        read_only_fields = ['id', 'doctor']
+        fields = [ 'doctor', 'date', 'day_of_week', 'start_time', 'end_time', 'is_active']
+        read_only_fields = ['id', 'day_of_week']
 
     def validate(self, data):
-        # Ensure start_time is before end_time
-        if data['start_time'] >= data['end_time']:
-            raise serializers.ValidationError("Start time must be before end time.")
+        doctor = data.get('doctor')
+        date = data.get('date')
+
+        # Check if a schedule for this doctor and date already exists
+        if WeeklySchedule.objects.filter(doctor=doctor, date=date).exists():
+            raise serializers.ValidationError("A schedule already exists for this doctor on this date.")
+        
         return data
 
 
+    def create(self, validated_data):
+        doctor = validated_data['doctor']
+        start_date = validated_data.pop('start_date', datetime.date())
+        end_date = validated_data.pop('end_date', start_date + timedelta(days=6))
+
+        # Generate schedule for the doctor from start_date to end_date
+        schedules = WeeklySchedule.generate_weekly_schedule(
+            doctor, start_date=start_date, end_date=end_date
+        )
+        
+        # Serialize the created or updated schedules
+        return schedules
+
+    
 class DoctorLeaveSerializer(serializers.ModelSerializer):
     class Meta:
         model = DoctorLeave
@@ -109,18 +127,31 @@ class DoctorLeaveSerializer(serializers.ModelSerializer):
         
 
 class DoctorSerializerAll(serializers.ModelSerializer):
-    user_id = serializers.UUIDField(source='user.id', read_only=True)
-    specialization = SpecializationSerializer()
-    weekly_schedule = WeeklyScheduleSerializer(many=True)
-    leaves = DoctorLeaveSerializer(many=True)
+    user = serializers.SerializerMethodField()  # To include detailed user information
+    specialization = SpecializationSerializer()  # Nested specialization data
+    weekly_schedule = WeeklyScheduleSerializer(many=True, source='weekly_schedules')  # Nested weekly schedule data
+    leaves = DoctorLeaveSerializer(many=True)  # Nested doctor leave data
 
     class Meta:
         model = Doctor
-        fields = ['id', 'user_id', 'specialization', 'degree', 'license_number',
-                  'years_of_experience', 'consultation_fee', 'profile_description',
-                  'max_patients_per_day', 'is_active', 'weekly_schedule', 'leaves']
+        fields = [
+            'user', 'specialization', 'degree', 'license_number',
+            'years_of_experience', 'consultation_fee', 'profile_description',
+            'max_patients_per_day', 'is_active', 'weekly_schedule', 'leaves'
+        ]
+
+    def get_user(self, obj):
+        user = obj.user
+        return {
+            'id': str(user.id),
+            'full_name': user.full_name,
+            'email': user.email,
+            'profile_photo': user.profile_photo.url if user.profile_photo else None
+        }
 
     def to_representation(self, instance):
+        """
+        Add custom logic here if you need to transform or format the data further.
+        """
         representation = super().to_representation(instance)
-        # You can add any additional custom logic here if needed
         return representation

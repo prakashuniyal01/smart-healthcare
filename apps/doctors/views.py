@@ -79,29 +79,14 @@ class SpecializationView(APIView):
         serializer = SpecializationSerializer(specializations, many=True)
         return Response(serializer.data, status=200)
         
-class WeeklyScheduleView(generics.ListCreateAPIView):
-    """
-    Handles Weekly Schedules
-    GET: View the doctor's weekly schedule.
-    POST: Update weekly schedule for a doctor.
-    """
-    permission_classes = [IsAuthenticated]
-    serializer_class = WeeklyScheduleSerializer
-
-    def get_queryset(self):
-        doctor = Doctor.objects.get(user=self.request.user)
-        return WeeklySchedule.objects.filter(doctor=doctor)
-
-    def perform_create(self, serializer):
-        user = self.request.user
-        try:
-            # Ensure the user has a Doctor profile
-            doctor = Doctor.objects.get(user=user)
-        except Doctor.DoesNotExist:
-            raise NotFound("Doctor profile not found for the current user.")
-        
-        # Save the Weekly Schedule with the associated doctor
-        serializer.save(doctor=doctor)
+class WeeklyScheduleView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = WeeklyScheduleSerializer(data=request.data)
+        if serializer.is_valid():
+            schedules = serializer.create(serializer.validated_data)
+            response_data = WeeklyScheduleSerializer(schedules, many=True).data
+            return Response(response_data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class DoctorLeaveView(generics.ListCreateAPIView):
@@ -131,3 +116,22 @@ class DoctorListView(APIView):
         serializer = DoctorSerializer(doctors, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)   
         
+        
+class DoctorDetailViewall(APIView):
+    def get(self, request, doctor_id=None):
+        """
+        Fetch detailed doctor information.
+        If `doctor_id` is provided, fetch specific doctor details;
+        otherwise, fetch details of all doctors.
+        """
+        if doctor_id:
+            try:
+                doctor = Doctor.objects.get(user_id=doctor_id)
+                serializer = DoctorSerializerAll(doctor)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            except Doctor.DoesNotExist:
+                return Response({"error": "Doctor not found"}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            doctors = Doctor.objects.all()
+            serializer = DoctorSerializerAll(doctors, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
